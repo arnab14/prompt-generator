@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Generator v6 - Complexity Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand-blue': '#3b82f6',
+                        'brand-blue-dark': '#2563eb',
+                    },
+                    boxShadow: {
+                        'input-focus': '0 0 0 3px rgba(59, 130, 246, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+    <style>
+        /* Custom styles complementing Tailwind */
+        body { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); }
+        .status-message { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
+        .loading { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .error { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; white-space: pre-wrap; word-wrap: break-word; }
+        select:focus, input:focus, textarea:focus { border-color: #3b82f6; box-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color); --tw-ring-color: rgba(59, 130, 246, 0.3); outline: none; }
+        #resultArea { white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', Courier, monospace; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem 1.25rem; margin-top: 0.5rem; line-height: 1.6; color: #1e293b; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); min-height: 160px; }
+        button { transition: all 0.2s ease-in-out; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; background-color: #94a3b8 !important; box-shadow: none !important; }
+        #copyButton { background-color: #64748b; }
+        #copyButton:hover:not(:disabled) { background-color: #475569; }
+        .history-item { background-color: #f1f5f9; border: 1px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 0.375rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #334155; cursor: pointer; transition: background-color 0.15s ease-in-out; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .history-item:hover { background-color: #e2e8f0; }
+    </style>
+</head>
+<body class="min-h-screen font-sans flex items-center justify-center p-4">
+    <div class="bg-white p-6 sm:p-10 rounded-xl shadow-2xl w-full max-w-3xl border border-slate-100">
+        <div class="flex items-center justify-center mb-6 gap-3">
+             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-blue lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-800">AI Prompt Generator</h1>
+        </div>
+        <p class="text-slate-600 mb-8 text-center text-lg">Craft effective prompts for various AI tasks.</p>
+
+        <form id="promptForm" class="space-y-5">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label for="prompt_type" class="block text-sm font-semibold text-slate-700 mb-1.5">Prompt Type</label>
+                    <select id="prompt_type" name="prompt_type" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out bg-white appearance-none">
+                        <option value="general" selected>General Purpose</option>
+                        <option value="email_draft">Draft an Email</option>
+                        <option value="code_snippet">Generate Code Snippet</option>
+                        <option value="text_summary">Summarize Text</option>
+                        <option value="travel_plan">Create Travel Itinerary</option>
+                        <option value="social_media">Plan Social Media Post</option>
+                        <option value="app_building">App Building Idea</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="target_model" class="block text-sm font-semibold text-slate-700 mb-1.5">Target Model Type</label>
+                    <select id="target_model" name="target_model" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out bg-white appearance-none">
+                        <option value="text" selected>Text Generation</option>
+                        <option value="image">Image Generation</option>
+                        <option value="code">Code Generation</option>
+                    </select>
+                </div>
+            </div>
+             <div>
+                <label for="topic" class="block text-sm font-semibold text-slate-700 mb-1.5">Topic / Subject</label>
+                <input type="text" id="topic" name="topic" required placeholder="e.g., Marketing campaign for new eco-friendly product" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out">
+            </div>
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-5"> <div>
+                    <label for="style" class="block text-sm font-semibold text-slate-700 mb-1.5">Desired Style / Tone</label>
+                    <input type="text" id="style" name="style" placeholder="e.g., Professional, Witty" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out">
+                 </div>
+                 <div>
+                    <label for="output_format" class="block text-sm font-semibold text-slate-700 mb-1.5">Output Format</label>
+                    <input type="text" id="output_format" name="output_format" placeholder="e.g., Bullet points, JSON" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out">
+                 </div>
+                 <div>
+                    <label for="complexity" class="block text-sm font-semibold text-slate-700 mb-1.5">Desired Complexity</label>
+                    <select id="complexity" name="complexity" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out bg-white appearance-none">
+                        <option value="default" selected>Default</option>
+                        <option value="simple">Simple / Direct</option>
+                        <option value="detailed">Detailed / Nuanced</option>
+                    </select>
+                 </div>
+             </div>
+             <div>
+                <label for="constraints" class="block text-sm font-semibold text-slate-700 mb-1.5">Constraints / Specific Instructions</label>
+                <textarea id="constraints" name="constraints" rows="3" placeholder="e.g., Max 150 words, Include a call to action" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out"></textarea>
+            </div>
+            <div>
+                <label for="negative_prompt" class="block text-sm font-semibold text-slate-700 mb-1.5">Things to Avoid (Negative Prompt)</label>
+                <textarea id="negative_prompt" name="negative_prompt" rows="3" placeholder="e.g., Avoid technical jargon, Don't mention competitors" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition duration-150 ease-in-out"></textarea>
+            </div>
+             <div class="pt-3">
+                <button type="submit" id="submitButton" class="w-full bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold py-3 px-5 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wand-2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.21 1.21 0 0 0 1.72 0L21.64 5.36a1.21 1.21 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+                    Generate Prompt
+                </button>
+            </div>
+        </form>
+
+        <div id="statusArea" class="mt-5"></div>
+
+        <div id="resultContainer" class="mt-6 hidden">
+            <h2 class="text-xl font-semibold text-slate-800 mb-3">Generated Prompt:</h2>
+            <div id="resultArea"></div>
+            <button id="copyButton" class="mt-4 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400 hidden disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                Copy Prompt
+            </button>
+        </div>
+
+        <div id="historySection" class="mt-10 pt-6 border-t border-slate-200">
+             <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-xl font-semibold text-slate-800">Prompt History</h2>
+                 <button id="clearHistoryButton" class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                     Clear History
+                 </button>
+             </div>
+             <div id="historyList" class="max-h-48 overflow-y-auto pr-2">
+                 <p id="noHistoryMessage" class="text-slate-500 text-sm italic">No history yet. Generate a prompt to start!</p>
+             </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Get references to elements
+        const form = document.getElementById('promptForm');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultArea = document.getElementById('resultArea');
+        const statusArea = document.getElementById('statusArea');
+        const submitButton = document.getElementById('submitButton');
+        const copyButton = document.getElementById('copyButton');
+        const promptTypeSelect = document.getElementById('prompt_type');
+        const historySection = document.getElementById('historySection');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryButton = document.getElementById('clearHistoryButton');
+        const noHistoryMessage = document.getElementById('noHistoryMessage');
+        const outputFormatInput = document.getElementById('output_format');
+        const negativePromptInput = document.getElementById('negative_prompt');
+        const complexitySelect = document.getElementById('complexity'); // <-- Get the new select element
+
+
+        // Define the backend API endpoint URL
+        const apiUrl = 'http://127.0.0.1:5000/generate-prompt';
+        const HISTORY_KEY = 'promptGeneratorHistory';
+        const MAX_HISTORY_ITEMS = 15;
+
+        // --- History Functions (remain the same) ---
+        function loadHistory() { const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); renderHistory(history); return history; }
+        function saveHistory(history) { const limitedHistory = history.slice(-MAX_HISTORY_ITEMS); localStorage.setItem(HISTORY_KEY, JSON.stringify(limitedHistory)); renderHistory(limitedHistory); }
+        function addHistoryItem(promptText) { const currentHistory = loadHistory(); if (currentHistory.length > 0 && currentHistory[currentHistory.length - 1].prompt === promptText) { return; } const newItem = { timestamp: new Date().toISOString(), prompt: promptText }; currentHistory.push(newItem); saveHistory(currentHistory); }
+        function renderHistory(history) { historyList.innerHTML = ''; if (history.length === 0) { noHistoryMessage.classList.remove('hidden'); clearHistoryButton.disabled = true; } else { noHistoryMessage.classList.add('hidden'); clearHistoryButton.disabled = false; history.slice().reverse().forEach((item) => { const div = document.createElement('div'); div.classList.add('history-item'); div.textContent = item.prompt; div.title = `Generated on: ${new Date(item.timestamp).toLocaleString()}\nClick to reuse`; div.addEventListener('click', () => { resultArea.textContent = item.prompt; resultContainer.classList.remove('hidden'); copyButton.classList.remove('hidden'); statusArea.innerHTML = ''; window.scrollTo({ top: resultContainer.offsetTop - 20, behavior: 'smooth' }); }); historyList.appendChild(div); }); } }
+        clearHistoryButton.addEventListener('click', () => { if (confirm('Are you sure you want to clear the entire prompt history?')) { localStorage.removeItem(HISTORY_KEY); renderHistory([]); } });
+
+        // --- Helper function to display status messages (remains the same) ---
+        function showStatus(message, type = 'loading') { let icon = ''; if (type === 'loading') { icon = `<svg class="animate-spin h-5 w-5 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`; } else if (type === 'error') { icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`; } statusArea.innerHTML = `<div class="status-message ${type}">${icon}<span>${message}</span></div>`; resultContainer.classList.add('hidden'); copyButton.classList.add('hidden'); }
+
+        // --- Event listener for form submission ---
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            showStatus('Generating prompt, please wait...', 'loading');
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+
+            // Get values from form fields, including complexity
+            const promptType = promptTypeSelect.value;
+            const topic = document.getElementById('topic').value;
+            const style = document.getElementById('style').value;
+            const targetModel = document.getElementById('target_model').value;
+            const constraints = document.getElementById('constraints').value;
+            const outputFormat = outputFormatInput.value;
+            const negativePrompt = negativePromptInput.value;
+            const complexity = complexitySelect.value; // <-- Get value from new select
+
+            // Prepare data payload, including complexity
+            const dataToSend = {
+                prompt_type: promptType,
+                topic: topic,
+                style: style,
+                target_model: targetModel,
+                constraints: constraints,
+                output_format: outputFormat,
+                negative_prompt: negativePrompt,
+                complexity: complexity // <-- Add to payload
+            };
+
+            // Use fetch API
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSend) });
+                const responseData = await response.json();
+
+                if (!response.ok) { throw new Error(responseData.error || `HTTP error! status: ${response.status}`); }
+
+                // Success! Display prompt and add to history
+                resultArea.textContent = responseData.generated_prompt;
+                statusArea.innerHTML = '';
+                resultContainer.classList.remove('hidden');
+                copyButton.classList.remove('hidden');
+                addHistoryItem(responseData.generated_prompt);
+
+            } catch (error) {
+                console.error('Error fetching prompt:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wand-2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.21 1.21 0 0 0 1.72 0L21.64 5.36a1.21 1.21 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg> Generate Prompt`;
+            }
+        });
+
+        // --- Event listener for Copy Button (remains the same) ---
+        copyButton.addEventListener('click', () => { navigator.clipboard.writeText(resultArea.textContent).then(() => { copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg> Copied!`; copyButton.disabled = true; setTimeout(() => { copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy Prompt`; copyButton.disabled = false; }, 2000); }).catch(err => { console.error('Failed to copy text: ', err); copyButton.textContent = 'Copy Failed'; setTimeout(() => { copyButton.textContent = 'Copy Prompt'; }, 2000); }); });
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => { loadHistory(); });
+
+    </script>
+</body>
+</html>

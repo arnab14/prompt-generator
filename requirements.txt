@@ -1,0 +1,7 @@
+Flask
+langchain
+langchain-google-genai
+python-dotenv
+Flask-CORS
+Flask-Limiter
+google-generativeai
